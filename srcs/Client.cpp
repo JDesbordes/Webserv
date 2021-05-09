@@ -159,7 +159,11 @@ void Client::process()
         std::string *path = Error::forceBuildPath(*_header, *_conf);
         std::map<std::string, Route>::reverse_iterator road = Error::getRoad(*_header, *_conf);
 
-        if (path != NULL && CGI()(*path, road->second))
+        if (road->second.getClientMaxBodySize() < _content.size())
+        {
+            _response = "HTTP/1.1 413 Request Entity Too Large\r\n\r\n";
+        }
+        else if (path != NULL && CGI()(*path, road->second))
         {
             CGI cgi;
             Debug::info("CGI PATH:" + *path);
@@ -172,7 +176,7 @@ void Client::process()
         }
         else
         {
-            _response = "HTTP/1.1 200 OK\r\n\r\n";
+            _response = "HTTP/1.1 200 OK\r\n\r\n"; // TODO RESPONSE ADD CONTENT
             if (path && isRegularFile(path->c_str()))
             {
                 int fd = open(path->c_str(), O_CREAT | O_WRONLY, 0644);

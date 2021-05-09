@@ -135,17 +135,25 @@ std::string *Error::forceBuildPath(HttpHeader &header, Server &conf)
     *path = header.getPath();
 
     try {
+        Debug::warning("E0");
         std::map<std::string, Route>::reverse_iterator road = getRoad(header, conf);
+        Debug::warning("E1");
         if (road->first.length() == path->length())
             *path += "/";
+        Debug::warning("E2");
         path->replace(0, road->first.length(), road->second.getRoot());
+        Debug::warning("E3");
         Debug::error("Path: " + *path + " size:", road->second.getIndex().size());
         if (isDirectory(path->c_str()))
         {
-            *path = *path + "/" + road->second.getIndex()[0];
+            Debug::warning("E4");
+            if (road->second.getIndex().size() > 0)
+                *path += "/" + road->second.getIndex()[0];
+            Debug::warning("E5");
             return (path);
         }
     } catch (Error::RoadNotFoundException &e) {}
+    Debug::warning("E6");
     return (path);
 }
 
