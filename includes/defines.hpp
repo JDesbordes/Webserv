@@ -16,7 +16,7 @@
 
 typedef int SOCKET;
 
-#define MAX_CONNECTIONS 256
+#define MAX_CONNECTIONS 4096
 #define RECV_BUFFER_SIZE 1000000
 
 #define DEFAULT_200_PAGE "<h1>200 Success/h1>"

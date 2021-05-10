@@ -32,7 +32,7 @@ const HttpHeader &HttpHeader::operator=(const HttpHeader &o) {
 
 std::pair<std::string, std::string> HttpHeader::get(std::string key) {
     lower(key);
-    std::map<std::string, std::string>::iterator itr = _headers.find(key);
+    std::map<const std::string, std::string>::iterator itr = _headers.find(key);
     if (itr != _headers.end())
         return (*itr);
     else
