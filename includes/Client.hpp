@@ -46,6 +46,7 @@ class Client
         bool _chunked;
 
         std::string _response;
+        bool _all_receive;
 };
 
 #endif

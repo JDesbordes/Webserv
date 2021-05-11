@@ -2,9 +2,9 @@
 
 Client::Client() {}
 Client::Client(SOCKET socket, char **env, Server *conf) : _socket(socket), _env(env), _conf(conf), _buff(""),
-    _from(0), _header(NULL), _header_end(false), _header_size(0), _content(""), _content_end(false), _content_size(0), _chunked(false) {}
+    _from(0), _header(NULL), _header_end(false), _header_size(0), _content(""), _content_end(false), _content_size(0), _chunked(false), _all_receive(false) {}
 Client::Client(const Client &o) : _socket(o._socket), _env(o._env), _conf(o._conf), _buff(o._buff),
-    _from(0), _header(NULL), _header_end(false), _header_size(0), _content(""), _content_end(false), _content_size(0), _chunked(false) {}
+    _from(0), _header(NULL), _header_end(false), _header_size(0), _content(""), _content_end(false), _content_size(0), _chunked(false), _all_receive(false) {}
 Client &Client::operator=(const Client &o) {
     _socket = o._socket;
     _env = o._env;
@@ -17,6 +17,7 @@ Client &Client::operator=(const Client &o) {
     _header_size = o._header_size;
     _chunked = o._chunked;
     _content_size = o._content_size;
+    _all_receive = o._all_receive;
     return (*this);
 }
 
@@ -28,7 +29,9 @@ void Client::append(std::string data) {
 
 bool Client::hasFinishedReading() {
     //Debug::info("Start _buff state [" + Debug::escapestr(_buff) + "]");
-    if (!_chunked && !_content_size && _buff.find("\r\n\r\n") != std::string::npos)
+    if (_all_receive)
+        return (_all_receive);
+    else if (!_chunked && !_content_size && _buff.find("\r\n\r\n") != std::string::npos)
     {
         _header_end = true;
         _header_size = _buff.find("\r\n\r\n") + 4;
@@ -39,21 +42,21 @@ bool Client::hasFinishedReading() {
         if (_header->exist("content-length")) {
             Debug::checkpoint("\t{content-length} Extraction: [" + _header->getValue("content-length") + "]");
             _content_size = atoi(_header->getValue("content-length").c_str());
-            return (process_length());
+            _all_receive = process_length();
         } else if (_header->exist("transfer-encoding") && _header->getValue("transfer-encoding") == "chunked") {
             Debug::checkpoint("\t{transfer-encoding} : [" + _header->getValue("transfer-encoding") + "]");
             _chunked = true;
-            return (process_chunked());
+            _all_receive = process_chunked();
+        } else {
+            Debug::checkpoint("\t{nothing to do}");
+            _all_receive = true;
         }
-        //Debug::checkpoint("\t{nothing to do}");
-        return (true);
     }
     else if (_chunked)
-        return (process_chunked());
+        _all_receive = process_chunked();
     else if (_content_size > 0)
-        return (process_length());
-    else
-        return (false);
+        _all_receive = process_length();
+    return (_all_receive);
 }
 
 bool Client::process_chunked() {
