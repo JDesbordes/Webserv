@@ -118,8 +118,12 @@ void Client::process()
 {
     Debug::checkpoint("Processing : ", _socket);
     //Debug::checkpoint("With data : [" + _content + "]");
-
-    if (!Error::method_authorized(*_header, *_conf))
+    if (_header->getPath().length() > MAX_URL)
+    {
+        Debug::error("414 URL Too Long");
+        _response = "HTTP/1.1 414 URL Too Long\r\n";
+    }
+    else if (!Error::method_authorized(*_header, *_conf))
     {
         Debug::error("405 Unauthorized Method");
         _response = "HTTP/1.1 405 Method Not Allowed\r\n";
@@ -207,7 +211,12 @@ void Client::process()
 }
 
 const char *Client::getResponse() { return (&(_response.c_str()[_from])); }
-size_t Client::getResponseLength() { return (_response.length() - _from); }
+size_t Client::getResponseLength() 
+{
+    Debug::checkpoint("response length = ", _response.length());
+    Debug::checkpoint("response length sent = ", _from);
+    return (_response.length() - _from); 
+}
 void Client::substract(size_t len) { _from += len; }
 
 Client::~Client() {}
