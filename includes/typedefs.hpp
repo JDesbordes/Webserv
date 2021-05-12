@@ -17,9 +17,16 @@ typedef enum e_method_type {
 } t_method_type;
 
 typedef struct s_method {
-    t_method_type type;
-    std::string path;
-    std::string args;
+    t_method_type   type;
+    std::string     path;
+    std::string     args;
 } t_method;
+
+class Server;
+
+typedef struct s_worker {
+    char            **env;
+    Server          *serv;
+} t_worker;
 
 #endif

@@ -25,14 +25,14 @@ CVERSION		=	--std=c++98
 FSANITIZE		=	-fsanitize=address
 LFLAGS  		=	-I $(INCS_DIR) -I$(LIBF_DIR)
 CALLF			=	$(CC) $(CFLAGS) $(CVERSION)
-CALLFLIB		=	$(CC) $(CFLAGS) $(CVERSION) $(LFLAGS) #$(FSANITIZE)
+CALLFLIB		=	$(CC) $(CFLAGS) $(CVERSION) $(LFLAGS) $(FSANITIZE)
 
 # Defauilt Make #
 all				:	directories lib $(NAME)
 
 # Stuff #
 $(NAME)			:	$(OBJS_PATH) $(LIBF_DIR)/libft.a
-	$(CALLFLIB) $(OBJS_PATH) -o $(NAME) $(LIBF_DIR)/libft.a
+	$(CALLFLIB) $(OBJS_PATH) -o $(NAME) $(LIBF_DIR)/libft.a -lpthread
 
 $(OBJS_DIR)/%.o	:	%.cpp $(INCS)
 	$(CALLFLIB) -c $< -o $@

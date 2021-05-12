@@ -21,17 +21,20 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <sstream>
+#include <pthread.h>
 #include "libft.hpp"
 #include "defines.hpp"
 #include "typedefs.hpp"
 #include "utils.hpp"
 
+static int pid[WORKERS];
 void int_handler(int);
 static SOCKET server_socket;
 
 #include "Debug.hpp"
 #include "Route.hpp"
 #include "Server.hpp"
+
 #include "Parser.hpp"
 #include "HttpHeader.hpp"
 #include "Error.hpp"

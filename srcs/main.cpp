@@ -1,63 +1,20 @@
 #include "global.hpp"
 
-void RunServer(Server server, char **env)
-{
-    Client                  *clients[FD_SETSIZE];
-    bool                    all_receive[FD_SETSIZE];
-    bool                    close_conn[FD_SETSIZE];
-    int                     len, rc, on = 1;
-    int                     max_sd, new_sd;
-    int                     desc_ready;
-    char                    buffer[RECV_BUFFER_SIZE];
-    struct sockaddr_in      addr;
-    fd_set                  master_set, working_set;
+void *StartWorker(void *args) {
+    Client              *clients[FD_SETSIZE];
+    bool                all_receive[FD_SETSIZE];
+    bool                close_conn[FD_SETSIZE];
+    char                buffer[RECV_BUFFER_SIZE];
+    fd_set              master_set, working_set;
+    int                 len, rc;
+    int                 desc_ready;
+    int                 max_sd = FD_SETSIZE, new_sd;
 
-    addr.sin_family = AF_INET;
-	addr.sin_port = htons(server.getPort());
-	addr.sin_addr.s_addr = inet_addr(server.getHost().c_str());
-
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_socket < 0)
-    {
-        Debug::error("socket() failed [" + std::string(strerror(errno)) + "]");
-        exit(-1);
-    }
-
-    signal(SIGINT, int_handler);
-    rc = setsockopt(server_socket, SOL_SOCKET,  SO_REUSEADDR, (char *)&on, sizeof(on));
-    if (rc < 0)
-    {
-        Debug::error("setsockopt() failed [" + std::string(strerror(errno)) + "]");
-        close(server_socket);
-        exit(-1);
-    }
-
-    rc = noblock(server_socket);
-    if (rc < 0)
-    {
-        Debug::error("noblock() failed [" + std::string(strerror(errno)) + "]");
-        close(server_socket);
-        exit(-1);
-    }
-
-    rc = bind(server_socket, (struct sockaddr *)&addr, sizeof(addr));
-    if (rc < 0)
-    {
-        Debug::error("bind() failed [" + std::string(strerror(errno)) + "]");
-        close(server_socket);
-        exit(-1);
-    }
-
-    rc = listen(server_socket, MAX_CONNECTIONS);
-    if (rc < 0)
-    {
-        Debug::error("listen() failed [" + std::string(strerror(errno)) + "]");
-        close(server_socket);
-        exit(-1);
-    }
+    t_worker            *worker = static_cast<t_worker*>(args);
+    char **env      =   worker->env;
+    Server *server  =   worker->serv;
 
     FD_ZERO(&master_set);
-    max_sd = FD_SETSIZE;
     FD_SET(server_socket, &master_set);
 
     for (int i = 0; i < FD_SETSIZE; i++)
@@ -102,7 +59,7 @@ void RunServer(Server server, char **env)
                         else {
                             Debug::checkpoint("New incoming connection - ", new_sd);
                             FD_SET(new_sd, &master_set);
-                            clients[new_sd] = new Client(new_sd, env, &server);
+                            clients[new_sd] = new Client(new_sd, env, server);
                             count++;
                         }
                     } while (new_sd != -1);
@@ -182,6 +139,77 @@ void RunServer(Server server, char **env)
             }
         }
     }
+    pthread_exit(NULL);
+}
+
+void RunServer(Server server, char **env)
+{
+    int                     rc, on = 1;
+    struct sockaddr_in      addr;
+    //pthread_t               *workers = (pthread_t *)malloc(WORKERS * sizeof(pthread_t));
+    t_worker                data;
+
+    addr.sin_family = AF_INET;
+	addr.sin_port = htons(server.getPort());
+	addr.sin_addr.s_addr = inet_addr(server.getHost().c_str());
+
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket < 0)
+    {
+        Debug::error("socket() failed [" + std::string(strerror(errno)) + "]");
+        exit(-1);
+    }
+
+    signal(SIGINT, int_handler);
+    rc = setsockopt(server_socket, SOL_SOCKET,  SO_REUSEADDR, (char *)&on, sizeof(on));
+    if (rc < 0)
+    {
+        Debug::error("setsockopt() failed [" + std::string(strerror(errno)) + "]");
+        close(server_socket);
+        exit(-1);
+    }
+
+    rc = noblock(server_socket);
+    if (rc < 0)
+    {
+        Debug::error("noblock() failed [" + std::string(strerror(errno)) + "]");
+        close(server_socket);
+        exit(-1);
+    }
+
+    rc = bind(server_socket, (struct sockaddr *)&addr, sizeof(addr));
+    if (rc < 0)
+    {
+        Debug::error("bind() failed [" + std::string(strerror(errno)) + "]");
+        close(server_socket);
+        exit(-1);
+    }
+
+    rc = listen(server_socket, MAX_CONNECTIONS);
+    if (rc < 0)
+    {
+        Debug::error("listen() failed [" + std::string(strerror(errno)) + "]");
+        close(server_socket);
+        exit(-1);
+    }
+
+    data.env = env;
+    data.serv = &server;
+
+    // pthread_t thread;
+
+    // rc = pthread_create(&thread, NULL, StartWorker, &data);
+    // Debug::checkpoint("RC:", rc);
+    // }
+    // Fork here
+    for (int i = 0; i < WORKERS; i++)
+    {
+        pid[i] = fork();
+        if (!pid[i]) {
+            StartWorker(&data);
+        }
+    }
+    while (true);
 }
 
 int main(int ac, char **av, char **env)
