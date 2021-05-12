@@ -196,12 +196,6 @@ void RunServer(Server server, char **env)
     data.env = env;
     data.serv = &server;
 
-    // pthread_t thread;
-
-    // rc = pthread_create(&thread, NULL, StartWorker, &data);
-    // Debug::checkpoint("RC:", rc);
-    // }
-    // Fork here
     for (int i = 0; i < WORKERS; i++)
     {
         pid[i] = fork();
@@ -225,7 +219,7 @@ int main(int ac, char **av, char **env)
         Parser p(path);
         Debug::checkpoint("Path: " + std::string(path));
         free(path);
-        Server s = p.getConfig().at(0); // TODO Multi serveur ?
+        Server s = p.getConfig().at(0);
         RunServer(s, env);
     }
     else
