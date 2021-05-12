@@ -211,7 +211,12 @@ void Client::process()
 }
 
 const char *Client::getResponse() { return (&(_response.c_str()[_from])); }
-size_t Client::getResponseLength() { return (_response.length() - _from); }
+size_t Client::getResponseLength() 
+{
+    Debug::checkpoint("response length = ", _response.length());
+    Debug::checkpoint("response length sent = ", _from);
+    return (_response.length() - _from); 
+}
 void Client::substract(size_t len) { _from += len; }
 
 Client::~Client() {}

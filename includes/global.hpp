@@ -2,6 +2,7 @@
 #define GLOBAL_HPP
 
 #include <map>
+#include <set>
 #include <vector>
 #include <string>
 #include <cctype>
