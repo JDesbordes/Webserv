@@ -13,6 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
@@ -31,6 +32,8 @@
 static int pid[WORKERS];
 void int_handler(int);
 static SOCKET server_socket;
+
+#include "Date.hpp"
 
 #include "Debug.hpp"
 #include "Route.hpp"

@@ -5,13 +5,13 @@
 
 class Date {
     public:
-        std::string operator()(int fd);
+        Date();
+        std::string operator()();
+        ~Date();
 
     private:
-        Date();
         Date(const Date &);
         Date &operator=(const Date &);
-        ~Date();
 };
 
 #endif // !DATE_HPP

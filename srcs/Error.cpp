@@ -59,6 +59,18 @@ bool Error::method_authorized(HttpHeader &header, Server &conf)
     return (false);
 }
 
+std::vector<t_method_type> Error::get_method_authorized(HttpHeader &header, Server &conf)
+{
+    std::string tmp_path = header.getPath();
+    std::vector<t_method_type> res;
+
+    try {
+        Route &road = getRoad(header, conf)->second;
+        return (road.getMethod()); 
+    } catch (Error::RoadNotFoundException &e) {}
+    return (res);
+}
+
 std::string *Error::file_exist(HttpHeader &header, Server &conf)
 {
     int r;

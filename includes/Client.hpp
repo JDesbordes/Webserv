@@ -45,6 +45,8 @@ class Client
         size_t _content_size;
         bool _chunked;
 
+        std::string _response_content;
+        std::vector<std::string> _response_header;
         std::string _response;
         bool _all_receive;
 };

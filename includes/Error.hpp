@@ -12,7 +12,7 @@ class Error {
         static bool method_authorized(HttpHeader&, Server&);
         static std::string *file_exist(HttpHeader&, Server&);
         static std::string *forceBuildPath(HttpHeader &header, Server &conf);
-
+        static std::vector<t_method_type> get_method_authorized(HttpHeader &header, Server &conf);
         class RoadNotFoundException : public std::exception { virtual const char* what() const throw(); };
 
         ~Error();
