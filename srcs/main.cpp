@@ -196,14 +196,14 @@ void RunServer(Server server, char **env)
     data.env = env;
     data.serv = &server;
 
-    // for (int i = 0; i < WORKERS; i++)
-    // {
-    //     pid[i] = fork();
-    //     if (!pid[i]) {
+    for (int i = 0; i < WORKERS; i++)
+    {
+        pid[i] = fork();
+        if (!pid[i]) {
             StartWorker(&data);
-    //     }
-    // }
-    // while (true);
+        }
+    }
+    while (true);
 }
 
 int main(int ac, char **av, char **env)
