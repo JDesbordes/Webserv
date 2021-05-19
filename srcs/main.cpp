@@ -76,12 +76,12 @@ void *StartWorker(void *args) {
                             {
                                 if (errno != EWOULDBLOCK && errno != EAGAIN)
                                 {
-                                    Debug::error("recv() failed [" + std::string(strerror(errno)) + "]");
+                                    Debug::warning("recv() failed [" + std::string(strerror(errno)) + "]");
                                     close_conn[i] = true;
                                     break;
                                 }
-                                else
-                                    Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
+                                // else
+                                //     Debug::warning("send() failed [" + std::string(strerror(errno)) + "]");
                             }
                             else
                             {
@@ -104,13 +104,13 @@ void *StartWorker(void *args) {
                             {
                                 if (errno != EWOULDBLOCK && errno != EAGAIN)
                                 {
-                                    Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
+                                    Debug::warning("send() failed [" + std::string(strerror(errno)) + "]");
                                     close_conn[i] = true;
                                     break;
                                 }
                                 else
                                 {
-                                    Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
+                                    //Debug::warning("send() failed [" + std::string(strerror(errno)) + "]");
                                     close_conn[i] = true;
                                 }
                             }

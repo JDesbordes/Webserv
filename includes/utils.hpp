@@ -15,6 +15,7 @@ t_method_type getType(std::string type);
 std::string getStringType(t_method_type type);
 int isRegularFile(const char *path);
 int isDirectory(const char *path);
+int countChar(std::string s, char c);
 
 template<typename charT>
 struct ci_equal {

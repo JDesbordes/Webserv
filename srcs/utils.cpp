@@ -114,3 +114,11 @@ int isDirectory(const char *path)
        return 0;
    return S_ISDIR(statbuf.st_mode);
 }
+
+int countChar(std::string s, char c) {
+  int count = 0;
+
+  for (size_t i = 0; i < s.size(); i++)
+    if (s[i] == c) count++;
+  return (count);
+}

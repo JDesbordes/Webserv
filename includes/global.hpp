@@ -7,6 +7,7 @@
 #include <string>
 #include <cctype>
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <exception>
 #include <fcntl.h>
@@ -34,6 +35,7 @@ void int_handler(int);
 static SOCKET server_socket;
 
 #include "Date.hpp"
+#include "Base64.hpp"
 
 #include "Debug.hpp"
 #include "Route.hpp"
@@ -41,7 +43,9 @@ static SOCKET server_socket;
 
 #include "Parser.hpp"
 #include "HttpHeader.hpp"
+#include "HttpParser.hpp"
 #include "Error.hpp"
+#include "HttpError.hpp"
 #include "Client.hpp"
 #include "CGI.hpp"
 
