@@ -10,22 +10,10 @@ CGI &CGI::operator=(const CGI &cgi) {
 
 bool CGI::operator()(std::string path, Route &conf)
 {
-    std::string tmp_path = path.substr(1);
-    std::vector<std::string> tokens = split(tmp_path, ".");
-    Debug::checkpoint("Functor CGI : [" + path + "]");
-    if (tokens.size() < 2)
-    {
-        Debug::checkpoint("Functor (false) CGI : [" + path + "]");
-        return (false);
-    }
-    std::vector<std::string> sub_tokens = split(tokens[1], "/");
-    std::string extension = sub_tokens[0];
-    if (conf.getCGIExtension() == extension)
-    {
-        Debug::checkpoint("Functor (true) CGI : [" + path + "]");
+    path = split(path, "?")[0];
+    std::vector<std::string> ext = split(path, ".");
+    if (ext.size() > 1 && ext.back() == conf.getCGIExtension())
         return (true);
-    }
-    Debug::checkpoint("Functor (false) CGI : [" + path + "]");
     return (false);
 }
 
@@ -33,6 +21,7 @@ CGI::~CGI() {}
 
 void CGI::setFrom(Client &c, std::string path, Route *conf, char **env)
 {
+    _errno = 200;
     Debug::checkpoint(path);
 
     std::stringstream ss;
@@ -136,7 +125,7 @@ std::string CGI::process()
 	pid = fork();
 
 	if (pid == -1)
-		return ("HTTP/1.1 500 Internal Server Error\r\n\r\n");
+		_errno = 500;
 	else if (!pid)
 	{
 		char *const *nll = NULL;
@@ -149,6 +138,7 @@ std::string CGI::process()
 	}
 	else
 	{
+        //add select
 		char	buffer[RECV_BUFFER_SIZE] = {0};
 		waitpid(-1, NULL, 0);
 		lseek(fdOut, 0, SEEK_SET);
@@ -170,7 +160,13 @@ std::string CGI::process()
 	close(saveStdin);
 	close(saveStdout);
 
-    res = parseResult(res);
+    if (res == "HTTP/1.1 500 Internal Server Error\r\n\r\n")
+    {
+        _errno = 500;
+        res = "\r\n\r\n";
+        Debug::error("CGI 500 Error");
+    }
+    // res = parseResult(res);
 
     return (res);
 }
@@ -190,15 +186,10 @@ std::string CGI::parseResult(std::string res)
     
     std::vector<std::string> headers;
     for (std::vector<std::string>::iterator itr = tokens.begin(); itr != tokens.end(); itr++)
-    {
         if (itr->find("Status", 0, 6) != std::string::npos)
-        {
-            std::string tmp = itr->substr(8);
-            headers.insert(headers.begin(), "HTTP/1.1 " + tmp);
-        }
+            _errno = ft_atoi(itr->substr(8).c_str());
         else
             headers.push_back(*itr);
-    }
 
     ss << "Content-Length:" << tmp_content.length();
     headers.push_back(ss.str());

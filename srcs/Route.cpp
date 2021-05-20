@@ -2,7 +2,7 @@
 
 Route::Route() : _root(""), _autoindex(true), _cgi_extension(""), _cgi_path(""), _client_max_body_size(1000000000) {}
 Route::Route(const Route &o)
-    : _root(o._root), _method(o._method), _autoindex(o._autoindex), _index(o._index), _cgi_extension(o._cgi_extension), _cgi_path(o._cgi_path) , _client_max_body_size(o._client_max_body_size) {}
+    : _root(o._root), _method(o._method), _autoindex(o._autoindex), _index(o._index), _cgi_extension(o._cgi_extension), _cgi_path(o._cgi_path) , _client_max_body_size(o._client_max_body_size), _auth_basic(o._auth_basic), _auth_basic_user_file(o._auth_basic_user_file), _auth_basic_user_file_list(o._auth_basic_user_file_list) {}
 Route &Route::operator=(const Route &o)
 {
     if (this == &o) return (*this);
@@ -17,6 +17,9 @@ void Route::addIndex(std::string filename) { _index.push_back(filename); }
 void Route::setCGIExtension(std::string ext) { _cgi_extension = ext; }
 void Route::setCGIPath(std::string path) { _cgi_path = path; }
 void Route::setClientMaxBodySize(size_t size) { _client_max_body_size = size; }
+void Route::setAuthBasic(std::string name) { _auth_basic = name; }
+void Route::setAuthBasicUserFile(std::string path) { _auth_basic_user_file = path; }
+void Route::setAuthBasicUserFileList(std::map<std::string, std::string> list) { _auth_basic_user_file_list = list; }
 
 std::string &Route::getRoot() { return (_root); }
 std::vector<t_method_type> &Route::getMethod() { return (_method); }
@@ -25,6 +28,9 @@ std::vector<std::string> &Route::getIndex() { return (_index); }
 std::string &Route::getCGIExtension() { return (_cgi_extension); }
 std::string &Route::getCGIPath() { return (_cgi_path); }
 size_t &Route::getClientMaxBodySize() { return (_client_max_body_size); }
+std::string &Route::getAuthBasic() { return (_auth_basic); }
+std::string &Route::getAuthBasicUserFile() { return (_auth_basic_user_file); }
+std::map<std::string, std::string> &Route::getAuthBasicUserFileList() { return (_auth_basic_user_file_list); }
 
 void Route::debug()
 {
@@ -47,6 +53,8 @@ void Route::debug()
     std::cout << "client_max_body_size: " << _client_max_body_size << std::endl;
     std::cout << "CGI extension: " << _cgi_extension << std::endl;
     std::cout << "CGI path: " << _cgi_path << std::endl;
+    std::cout << "Auth Basic: " << _auth_basic << std::endl;
+    std::cout << "Auth Basic User File: " << _auth_basic_user_file << std::endl;
 }
 
 Route::~Route() {}

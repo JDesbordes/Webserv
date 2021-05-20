@@ -23,8 +23,8 @@ Client &Client::operator=(const Client &o) {
 
 void Client::append(std::string data) {
     _buff += data; 
-    Debug::info("buff size: ", _buff.length());
-    Debug::info("content size: ", _content.length());
+    // Debug::info("buff size: ", _buff.length());
+    // Debug::info("content size: ", _content.length());
 }
 
 bool Client::hasFinishedReading() {
@@ -35,6 +35,7 @@ bool Client::hasFinishedReading() {
     {
         _header_end = true;
         _header_size = _buff.find("\r\n\r\n") + 4;
+        _raw_header = _buff.substr(0, _header_size);
         _header = new HttpHeader(_buff.substr(0, _header_size));
 
         _buff.erase(0, _header_size);
@@ -117,132 +118,18 @@ std::string Client::getContent() { return (_content); }
 void Client::process()
 {
     Debug::checkpoint("Processing : ", _socket);
-    //Debug::checkpoint("With data : [" + _content + "]");
-    if (!_header->exist("Host"))
-    {
-        Debug::error("400 Bad Request");
-        _response_header.push_back("HTTP/1.1 400 Bad Request");
-    }
-    else if (_header->getPath().length() > MAX_URL)
-    {
-        Debug::error("414 URL Too Long");
-        _response_header.push_back("HTTP/1.1 414 URL Too Long");
-    }
-    else if (!Error::method_authorized(*_header, *_conf))
-    {
-        Debug::error("405 Unauthorized Method");
-        _response_header.push_back("HTTP/1.1 405 Method Not Allowed");
-        std::vector<t_method_type> lst = Error::get_method_authorized(*_header, *_conf);
-        std::string methods = "Allow: ";
-        for (std::vector<t_method_type>::iterator itr = lst.begin(); itr != lst.end(); itr++)
-            methods += getStringType(*itr) + ", ";
-        methods.substr(0, methods.length() - 2);
-        _response_header.push_back(methods);
-
-        if (_header->getMethod() != "HEAD")
-        {
-            std::string page;
-            if (_conf->getErrorPage().find(405) != _conf->getErrorPage().end())
-                page = Error::getErrorPageContent(405, *_conf);
-            else
-                page = DEFAULT_405_PAGE;
-            _response_content = page;
-        }
-    }
-    else if (!Error::file_exist(*_header, *_conf) && getType(_header->getMethod()) != POST && getType(_header->getMethod()) != PUT)
-    {
-        Debug::error("404 File Not Found");
-        _response_header.push_back("HTTP/1.1 404 File Not Found");
-
-        if (_header->getMethod() != "HEAD")
-        {
-            std::string page;
-            if (_conf->getErrorPage().find(404) != _conf->getErrorPage().end())
-                page = Error::getErrorPageContent(404, *_conf);
-            else
-                page = DEFAULT_404_PAGE;
-            _response_content = page;
-        }
-    }
-    else if (getType(_header->getMethod()) == POST || getType(_header->getMethod()) == PUT)
-    {
-        std::string *path = Error::forceBuildPath(*_header, *_conf);
-        std::map<std::string, Route>::reverse_iterator road = Error::getRoad(*_header, *_conf);
-
-        if (road->second.getClientMaxBodySize() < _content.size())
-            _response_header.push_back("HTTP/1.1 413 Request Entity Too Large");
-        else if (path != NULL && CGI()(*path, road->second))
-        {
-            CGI cgi;
-            Debug::info("CGI PATH:" + *path);
-            cgi.setFrom(*this, *path, &(road->second), _env);
-            std::string tmp_response = cgi.process();
-
-            _response_content = tmp_response.substr(tmp_response.find("\r\n\r\n") + 4);
-            std::vector<std::string> tmp = split(tmp_response.substr(0, tmp_response.find("\r\n\r\n")), "\r\n");
-            _response_header.insert(_response_header.begin(), tmp.begin(), tmp.end());
-
-            std::string to_write = _response_content;
-            int fd = open(path->c_str(), O_CREAT | O_WRONLY, 0644);
-            write(fd, to_write.c_str(), to_write.length());
-            close(fd);
-        }
-        else
-        {
-            _response_header.push_back("HTTP/1.1 200 OK");
-            _response_content = _content;
-            if (path && isRegularFile(path->c_str()))
-            {
-                int fd = open(path->c_str(), O_CREAT | O_WRONLY, 0644);
-                write(fd, _content.c_str(), _content.length());
-                close(fd);
-            }
-        }
-    }
-    else
-    {
-        std::string *path = Error::file_exist(*_header, *_conf);
-        std::map<std::string, Route>::reverse_iterator road = Error::getRoad(*_header, *_conf);
-        if (CGI()(*path, road->second))
-        {
-            CGI cgi;
-
-            cgi.setFrom(*this, *path, &(road->second), _env);
-            std::string tmp_response = cgi.process();
-
-            _response_content = tmp_response.substr(tmp_response.find("\r\n\r\n") + 4);
-            std::vector<std::string> tmp = split(tmp_response.substr(0, tmp_response.find("\r\n\r\n")), "\r\n");
-            _response_header.insert(_response_header.begin(), tmp.begin(), tmp.end());
-        }
-        else
-            _response_header.push_back("HTTP/1.1 200 OK");
-    }
-
-    _response_header.push_back(Date()());
-    if (_response_content.length() > 0)
-    {
-        char *tmp = ft_itoa(_response_content.length());
-        _response_header.push_back("Content-Length: " + std::string(tmp));
-        free(tmp);
-    }
-
-    _response_header.push_back("Server: Webserv/2.0.1");
-
-    _response = "";
-    for (std::vector<std::string>::iterator itr = _response_header.begin(); itr != _response_header.end(); itr++)
-        _response += *itr + "\r\n";
-    _response += "\r\n";
-    _response += _response_content;
-
-    Debug::checkpoint("Response : " + Debug::escapestr(_response.substr(0, 100000)));
-    delete _header;
+    HttpParser httpParser = HttpParser();
+    std::string page = httpParser.processParse(*this, _conf, _raw_header, _content, _env);
+    Debug::error("PAGE RESULT: " + page.substr(0, 2000));
+    _response = page;
+    return ;
 }
 
 const char *Client::getResponse() { return (&(_response.c_str()[_from])); }
 size_t Client::getResponseLength() 
 {
-    Debug::checkpoint("response length = ", _response.length());
-    Debug::checkpoint("response length sent = ", _from);
+    // Debug::checkpoint("response length = ", _response.length());
+    // Debug::checkpoint("response length sent = ", _from);
     return (_response.length() - _from); 
 }
 void Client::substract(size_t len) { _from += len; }

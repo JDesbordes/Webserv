@@ -18,6 +18,7 @@ class CGI {
         std::string parseResult(std::string);
 
         std::string process();
+        int _errno;
 
     private:
         std::map<std::string, std::string> _mapped_args;

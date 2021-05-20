@@ -164,7 +164,7 @@ void RunServer(Server server, char **env)
     }
 
     signal(SIGINT, int_handler);
-    rc = setsockopt(server_socket, SOL_SOCKET,  SO_REUSEADDR, (char *)&on, sizeof(on));
+    rc = setsockopt(server_socket, SOL_SOCKET,  TCP_NODELAY, (char *)&on, sizeof(on));
     if (rc < 0)
     {
         Debug::error("setsockopt() failed [" + std::string(strerror(errno)) + "]");

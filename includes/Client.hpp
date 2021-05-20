@@ -35,6 +35,7 @@ class Client
         Server *_conf;
         std::string _buff;
         size_t _from;
+        std::string _raw_header;
 
         HttpHeader *_header;
         bool _header_end;

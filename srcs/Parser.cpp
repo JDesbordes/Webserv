@@ -162,7 +162,7 @@ Parser::Parser(char *path)
             else if (last_type == 2 && cleaned[0] == "root" && cleaned.size() == 2)
             {
                 if (cleaned.back()[cleaned.back().length() - 1] == '/')
-                    cleaned.back() = cleaned.back().substr(0, cleaned.back().length() - 1);
+                    cleaned.back() = cleaned.back().substr(0, cleaned.back().length());
                 last_location->second.setRoot(std::string(cleaned[1]));
             }
             else if (last_type == 2 && cleaned[0] == "autoindex" && cleaned.size() == 2)
@@ -184,10 +184,34 @@ Parser::Parser(char *path)
             {
                 last_location->second.setCGIPath(cleaned[1]);
             }
+            else if (last_type == 2 && cleaned[0] == "basic_auth")
+            {
+                last_location->second.setAuthBasic(lines[i].substr(lines[i].find_first_of("\"") + 1, lines[i].find_last_of("\"") + 1));
+            }
+            else if (last_type == 2 && cleaned[0] == "basic_auth_user_file" && cleaned.size() == 2)
+            {
+                last_location->second.setAuthBasicUserFile(cleaned[1]);
+                std::ifstream ifile(cleaned[1]);
+                if (ifile.is_open()) {
+                    while (ifile) {
+                        std::string tmp;
+                        getline(ifile, tmp);
+                        if (countChar(tmp, ':') != 1 && tmp != "")
+                            parse_error("Invalid .htpasswd format (user:pass)", cleaned[1]);
+                        std::vector<std::string> tkns = split(tmp, ":");
+                        last_location->second.getAuthBasicUserFileList().insert(std::pair<std::string, std::string>(tkns[0], tkns[1]));
+                    }
+                    std::stringstream ss;
+                } else
+                    parse_error("File not found or permissions Error", cleaned[1]);
+            }
             else parse_error("Unrecognized key Error", cleaned[0]);
         }
     }
     close(config_fd);
+    for (std::vector<Server>::iterator it = _result.begin(); it != _result.end(); it++)
+        if (it->getRoute().size() < 1)
+            parse_error("One or more Road are required", it->getServerName());
 }
 
 std::vector<Server> Parser::getConfig() { return (_result); }
