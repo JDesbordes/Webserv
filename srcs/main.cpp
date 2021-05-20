@@ -5,10 +5,10 @@ void *StartWorker(void *args) {
     bool                all_receive[FD_SETSIZE];
     bool                close_conn[FD_SETSIZE];
     char                buffer[RECV_BUFFER_SIZE];
-    fd_set              master_set, working_set;
+    fd_set              master_set, read_set, write_set;
     int                 len, rc;
     int                 desc_ready;
-    int                 max_sd = FD_SETSIZE, new_sd;
+    int                 new_sd;
 
     t_worker            *worker = static_cast<t_worker*>(args);
     char **env      =   worker->env;
@@ -26,9 +26,10 @@ void *StartWorker(void *args) {
     int count = 0;
     while (true)
     {
-        memcpy(&working_set, &master_set, sizeof(master_set));
+        memcpy(&read_set, &master_set, sizeof(master_set));
+        memcpy(&write_set, &master_set, sizeof(master_set));
         Debug::info("Waiting on select()...");
-        rc = select(FD_SETSIZE, &working_set, NULL, NULL, NULL);
+        rc = select(FD_SETSIZE, &read_set, &write_set, NULL, NULL);
         if (rc < 0)
         {
             Debug::error("select() failed [" + std::string(strerror(errno)) + "]");
@@ -36,92 +37,93 @@ void *StartWorker(void *args) {
         }
         Debug::info("RC ", rc);
         desc_ready = rc;
-        for (int i = 0; i <= max_sd && desc_ready > 0; ++i)
+        if (rc > 0)
         {
-            if (FD_ISSET(i, &working_set))
+            if (FD_ISSET(server_socket, &read_set))
             {
-                desc_ready -= 1;
-                if (i == server_socket)
+                Debug::checkpoint("Listening socket is readable Count:", count);
+                new_sd = accept(server_socket, NULL, NULL);
+                if (new_sd < 0)
                 {
-                    Debug::checkpoint("Listening socket is readable Count:", count);
-                    do
+                    if (errno != EWOULDBLOCK)
                     {
-                        new_sd = accept(server_socket, NULL, NULL);
-                        if (new_sd < 0)
-                        {
-                            if (errno != EWOULDBLOCK)
-                            {
-                                Debug::error("accept() failed [" + std::string(strerror(errno)) + "]");
-                                exit(1);
-                            }
-                            break;
-                        }
-                        else {
-                            Debug::checkpoint("New incoming connection - ", new_sd);
-                            FD_SET(new_sd, &master_set);
-                            clients[new_sd] = new Client(new_sd, env, server);
-                            count++;
-                        }
-                    } while (new_sd != -1);
+                        Debug::error("accept() failed [" + std::string(strerror(errno)) + "]");
+                        exit(1);
+                    }
+                    break;
                 }
-                else
+                else {
+                    noblock(new_sd);
+                    Debug::checkpoint("New incoming connection - ", new_sd);
+                    FD_SET(new_sd, &master_set);
+                    clients[new_sd] = new Client(new_sd, env, server);
+                    count++;
+                }
+            }
+            for (int i = 0; i <= 1000 && desc_ready > 0; ++i)
+            {
+                if (FD_ISSET(i, &read_set) && i != server_socket)
                 {
-                    Debug::checkpoint("Descriptor is readable - Count:", count);
-                    while (true)
+                    if (!all_receive[i])
                     {
-                        if (!all_receive[i])
+                        Debug::checkpoint("Descriptor is readable - Count:", count);
+                        rc = recv(i, buffer, sizeof(buffer), 0);
+                        if (rc != 0)
                         {
-                            rc = recv(i, buffer, sizeof(buffer), 0);
-                            if (rc < 0)
+                            //timeout put in place
+                        }
+                        if (rc < 0)
+                        {
+                            if (errno != EWOULDBLOCK && errno != EAGAIN)
                             {
-                                if (errno != EWOULDBLOCK && errno != EAGAIN)
-                                {
-                                    Debug::error("recv() failed [" + std::string(strerror(errno)) + "]");
-                                    close_conn[i] = true;
-                                    break;
-                                }
-                                else
-                                    Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
+                                Debug::error("recv() failed [" + std::string(strerror(errno)) + "]");
+                                close_conn[i] = true;
+                                break;
+                            }
+                            else
+                                Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
+                        }
+                        else
+                        {
+                            len = rc;
+                            //Debug::info("bytes received: [" + Debug::escapestr(std::string(buffer, len)) + "]", len);
+                            clients[i]->append(std::string(buffer, len));
+
+                            if (clients[i]->hasFinishedReading())
+                            {
+                                clients[i]->process();
+                                all_receive[i] = true;
+                            }
+                        }
+                    }
+                }
+                else if (FD_ISSET(i, &write_set))
+                {
+                    Debug::checkpoint("Descriptor is writable - Count:", count);
+                    if (all_receive[i] && !close_conn[i])
+                    {
+                        Debug::checkpoint("Send : ", clients[i]->getResponseLength());
+                        rc = send(i, clients[i]->getResponse(), clients[i]->getResponseLength(), 0);
+                        if (rc < 0)
+                        {
+                            if (errno != EWOULDBLOCK && errno != EAGAIN)
+                            {
+                                Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
+                                close_conn[i] = true;
+                                break;
                             }
                             else
                             {
-                                len = rc;
-                                //Debug::info("bytes received: [" + Debug::escapestr(std::string(buffer, len)) + "]", len);
-                                clients[i]->append(std::string(buffer, len));
-
-                                if (clients[i]->hasFinishedReading())
-                                {
-                                    clients[i]->process();
-                                    all_receive[i] = true;
-                                }
+                                Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
+                                close_conn[i] = true;
                             }
                         }
-                        if (all_receive[i])
-                        {
-                            Debug::checkpoint("Send : ", clients[i]->getResponseLength());
-                            rc = send(i, clients[i]->getResponse(), clients[i]->getResponseLength(), 0);
-                            if (rc < 0)
+                        else {
+                            clients[i]->substract(rc); 
+                            if (clients[i]->hasFinishedSending())
                             {
-                                if (errno != EWOULDBLOCK && errno != EAGAIN)
-                                {
-                                    Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
-                                    close_conn[i] = true;
-                                    break;
-                                }
-                                else
-                                {
-                                    Debug::error("send() failed [" + std::string(strerror(errno)) + "]");
-                                    close_conn[i] = true;
-                                }
-                            }
-                            else {
-                                clients[i]->substract(rc); 
-                                if (clients[i]->hasFinishedSending())
-                                {
-                                    Debug::checkpoint("Connection closed");
-                                    close_conn[i] = true;
-                                    break;
-                                }
+                                Debug::checkpoint("Connection closed");
+                                close_conn[i] = true;
                             }
                         }
                     }
@@ -134,6 +136,7 @@ void *StartWorker(void *args) {
                         all_receive[i] = false;
                         close_conn[i] = false;
                         Debug::checkpoint("Close FD");
+                        break;
                     }
                 }
             }
