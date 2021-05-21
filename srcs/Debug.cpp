@@ -1,16 +1,60 @@
 #include "Debug.hpp"
 
-void Debug::error(std::string err) { std::cerr << RED << "[ERROR]: " << DGR << err << RST << std::endl; }
-void Debug::error(std::string err, int code) { std::cerr << RED << "[ERROR]: " << DGR << err << " (" << code << ")" << RST << std::endl; }
+void Debug::error(std::string err) {
+    #ifdef ERR
+    if (d == true) { std::cerr << RED << "[ERROR]: " << DGR << err << RST << std::endl; }
+    #endif    
+    (void)err;
+}
+void Debug::error(std::string err, int code) {
+    #ifdef ERR
+    if (d == true) { std::cerr << RED << "[ERROR]: " << DGR << err << " (" << code << ")" << RST << std::endl; }
+    #endif
+    (void)err;
+    (void)code;   
+}
 
-void Debug::warning(std::string warn) { std::cout << YEL << "[WARNING]: " << DGR << warn << RST << std::endl; }
-void Debug::warning(std::string warn, int code) { std::cout << YEL << "[WARNING]: " << DGR << warn << " (" << code << ")" << RST << std::endl; }
+void Debug::warning(std::string warn) {
+    #ifdef WARN
+    if (d == true) { std::cout << YEL << "[WARNING]: " << DGR << warn << RST << std::endl; }
+    #endif
+    (void)warn;
+}
+void Debug::warning(std::string warn, int code) {
+    #ifdef WARN
+    if (d == true) { std::cout << YEL << "[WARNING]: " << DGR << warn << " (" << code << ")" << RST << std::endl; }
+    #endif
+    (void)warn;
+    (void)code; 
+}
 
-void Debug::checkpoint(std::string cp) { std::cout << GRE << "[CHECKPOINT]: " << DGR << cp << RST << std::endl; }
-void Debug::checkpoint(std::string cp, int code) { std::cout << GRE << "[CHECKPOINT]: " << DGR << cp << " (" << code << ")" << RST << std::endl; }
+void Debug::checkpoint(std::string cp) {
+    #ifdef CP
+    if (d == true) { std::cout << GRE << "[CHECKPOINT]: " << DGR << cp << RST << std::endl; }
+    #endif
+    (void)cp;
+}
+void Debug::checkpoint(std::string cp, int code) {
+    #ifdef CP
+    if (d == true) { std::cout << GRE << "[CHECKPOINT]: " << DGR << cp << " (" << code << ")" << RST << std::endl; }
+    #endif
+    (void)cp;
+    (void)code; 
+}
 
-void Debug::info(std::string info) { std::cout << BLU << "[INFO]: " << DGR << info << RST << std::endl; }
-void Debug::info(std::string info, int code) { std::cout << BLU << "[INFO]: " << DGR << info << " (" << code << ")" << RST << std::endl; }
+void Debug::info(std::string info) {
+    #ifdef INFO
+    if (d == true) { std::cout << BLU << "[INFO]: " << DGR << info << RST << std::endl; }
+    #endif
+    (void)info;
+}
+void Debug::info(std::string info, int code) {
+    #ifdef INFO
+    if (d == true) { std::cout << BLU << "[INFO]: " << DGR << info << " (" << code << ")" << RST << std::endl; }
+    #endif
+    (void)info;
+    (void)code; 
+}
 
 std::string Debug::escapestr(std::string str) {
     std::string res = "";
