@@ -23,13 +23,14 @@ void *StartWorker(void *args) {
         all_receive[i] = false;
         close_conn[i] = false;
     }
-
     int count = 0;
     while (true)
     {
+        can_accept = true;
         memcpy(&read_set, &master_set, sizeof(master_set));
         memcpy(&write_set, &master_set, sizeof(master_set));
         Debug::info("Waiting on select()...");
+        Debug::checkpoint("FORK Number NOW:", worker->id);
         rc = select(FD_SETSIZE, &read_set, &write_set, NULL, NULL);
         if (rc < 0)
         {
@@ -40,28 +41,6 @@ void *StartWorker(void *args) {
         desc_ready = rc;
         if (rc > 0)
         {
-            if (FD_ISSET(server_socket, &read_set))
-            {
-                Debug::checkpoint("Listening socket is readable Count:", count);
-                new_sd = accept(server_socket, NULL, NULL);
-                if (new_sd < 0)
-                {
-                    if (errno != EWOULDBLOCK)
-                    {
-                        Debug::error("accept() failed [" + std::string(strerror(errno)) + "]");
-                        exit(1);
-                    }
-                    break;
-                }
-                else {
-                    noblock(new_sd);
-                    Debug::checkpoint("New incoming connection - ", new_sd);
-                    FD_SET(new_sd, &master_set);
-                    clients[new_sd] = new Client(new_sd, env, server);
-                    count++;
-                }
-            }
-            can_accept = true;
             for (int i = 0; i <= 1000 && desc_ready > 0; ++i)
             {
                 if (FD_ISSET(i, &read_set) && i != server_socket)
@@ -70,6 +49,7 @@ void *StartWorker(void *args) {
                     if (!all_receive[i])
                     {
                         Debug::checkpoint("Descriptor is readable - Count:", count);
+                        Debug::checkpoint("FORK Number:", worker->id);
                         rc = recv(i, buffer, sizeof(buffer), 0);
                         if (rc != 0)
                         {
@@ -112,10 +92,11 @@ void *StartWorker(void *args) {
                         }*/
                     }
                 }
-                else if (FD_ISSET(i, &write_set))
+                else if (FD_ISSET(i, &write_set) && i != server_socket)
                 {
                     can_accept = false;
                     Debug::checkpoint("Descriptor is writable - Count:", count);
+                    Debug::checkpoint("FORK Number:", worker->id);
                     if (all_receive[i] && !close_conn[i])
                     {
                         Debug::checkpoint("Send : ", clients[i]->getResponseLength());
@@ -155,6 +136,27 @@ void *StartWorker(void *args) {
                         Debug::checkpoint("Close FD");
                         break;
                     }
+                }
+            }
+            if (FD_ISSET(server_socket, &read_set))
+            {
+                Debug::checkpoint("Listening socket is readable Count:", count);
+                new_sd = accept(server_socket, NULL, NULL);
+                if (new_sd < 0)
+                {
+                    if (errno != EWOULDBLOCK)
+                    {
+                        Debug::error("accept() failed [" + std::string(strerror(errno)) + "]");
+                        exit(1);
+                    }
+                    break;
+                }
+                else {
+                    noblock(new_sd);
+                    Debug::checkpoint("New incoming connection - ", new_sd);
+                    FD_SET(new_sd, &master_set);
+                    clients[new_sd] = new Client(new_sd, env, server);
+                    count++;
                 }
             }
         }
@@ -217,8 +219,15 @@ void RunServer(Server server, char **env)
     data.serv = &server;
  
     for (int i = 0; i < server.getWorkers(); i++)
+    {
+        Debug::warning("ONCE");
         if (!fork())
+        {
+            data.id = i;
             StartWorker(&data);
+            break;
+        }
+    }
     while (true);
 }
 
