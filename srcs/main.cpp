@@ -142,7 +142,7 @@ void *StartWorker(void *args) {
             }
         }
     }
-    pthread_exit(NULL);
+    return (NULL);
 }
 
 void RunServer(Server server, char **env)
