@@ -35,6 +35,14 @@ static int pid[WORKERS];
 void int_handler(int);
 static SOCKET server_socket;
 
+#ifdef DEBUG_HPP
+  #define EXTERN
+#else
+  #define EXTERN extern
+#endif
+
+EXTERN bool d;
+
 #include "Date.hpp"
 #include "Base64.hpp"
 

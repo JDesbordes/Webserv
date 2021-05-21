@@ -163,7 +163,6 @@ void RunServer(Server server, char **env)
         exit(-1);
     }
 
-    signal(SIGINT, int_handler);
     rc = setsockopt(server_socket, SOL_SOCKET,  TCP_NODELAY, (char *)&on, sizeof(on));
     if (rc < 0)
     {
@@ -201,20 +200,34 @@ void RunServer(Server server, char **env)
 
     for (int i = 0; i < WORKERS; i++)
     {
-        pid[i] = fork();
-        if (!pid[i]) {
+        int p = fork();
+        if (!p) {
             StartWorker(&data);
+        } else {
+            pid[i] = p;
         }
     }
+    signal(SIGINT, int_handler);
     while (true);
 }
 
 int main(int ac, char **av, char **env)
 {
-    if (ac >= 2)
+    std::vector<int> pids;
+    d = true;
+
+    if (ac == 3 && (!ft_strncmp(av[2], "on", 3) || !ft_strncmp(av[2], "off", 4)))
     {
         char *path;
         char buf[2048];
+
+        if (!ft_strncmp(av[2], "on", 2)) {
+            std::cout << "DEBUG TRUE" << std::endl;
+            d = true;
+        } else {
+            std::cout << "DEBUG FALSE" << std::endl;
+            d = false;
+        }
 
         getcwd(buf, 2048);
         path = ft_strjoin(buf, "/");
@@ -222,10 +235,49 @@ int main(int ac, char **av, char **env)
         Parser p(path);
         Debug::checkpoint("Path: " + std::string(path));
         free(path);
-        Server s = p.getConfig().at(0);
-        RunServer(s, env);
+        std::vector<Server> servs = p.getConfig();
+        for (std::vector<Server>::iterator itr = servs.begin(); itr != servs.end(); itr++)
+        {
+            pid_t tmp_pid = fork();
+            if (tmp_pid == -1)
+                Debug::error("Erreur de fork");
+            else if (!tmp_pid)
+                RunServer(*itr, env);
+            else
+                pids.push_back(tmp_pid);
+        }
+        if (d) sleep(2); // Wait workers initialization
+        std::cout << GRE << "╔═══════════════════════════════════════════════╗" << RST << std::endl;
+        std::cout << GRE << "║  Type ? or help for show command list         ║" << RST << std::endl;
+        std::cout << GRE << "╚═══════════════════════════════════════════════╝" << RST << std::endl;
+        while (1) {
+            std::cout << "$> ";
+            std::string command;
+            getline(std::cin, command);
+            std::vector<std::string> tkns = split(command, " ");
+            if ((tkns[0] == "?" || tkns[0] == "help") && tkns.size() == 1) {
+                std::cout << GRE << "╔═══════════════╦═════ " << RED << "HELP" << GRE << " ════════════════════╗" << RST << std::endl;
+                std::cout << GRE << "║ ? or help     ║   show help                   ║" << RST << std::endl;
+                std::cout << GRE << "║ list          ║   show servers                ║" << RST << std::endl;
+                std::cout << GRE << "║ exit          ║   stop servers                ║" << RST << std::endl;
+                std::cout << GRE << "╚═══════════════╩═══════════════════════════════╝" << RST << std::endl;
+            } else if (tkns[0] == "list" && tkns.size() == 1) {
+                std::cout << GRE << "╔═══════════════╦═════ " << RED << "LIST" << GRE << " ════╦═══════════════╗" << RST << std::endl;
+                std::cout << GRE << "║      PID      ║      HOST     ║      PORT     ║" << RST << std::endl;
+                std::cout << GRE << "╠═══════════════╬═══════════════╬═══════════════╣" << RST << std::endl;
+                for (size_t i = 0; i < servs.size(); i++) {
+                    std::cout   << GRE << "║" << GRE << std::setw(15) << pids.at(i)
+                                << GRE << "║" << GRE << std::setw(15) << servs.at(i).getHost()
+                                << GRE << "║" << GRE << std::setw(15) << servs.at(i).getPort()
+                                << GRE << "║" << RST << std::endl;
+                }
+                std::cout << GRE << "╚═══════════════╩═══════════════╩═══════════════╝" << RST << std::endl;
+            } else if (tkns[0] == "exit" && tkns.size() == 1) {
+                kill(0, SIGINT);
+            } else { std::cout << RED << "Error: Type ? or help for show command list" << RST << std::endl; }
+        }
     }
     else
-        Debug::error("You need to specified a config path.");
+        std::cerr << RED << "exemple: ./Webserv <config_path> <on/off (enable or disable debug)>" << std::endl;
     return (0);
 }
