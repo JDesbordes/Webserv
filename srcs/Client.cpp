@@ -22,6 +22,8 @@ Client &Client::operator=(const Client &o) {
 }
 
 void Client::append(std::string data) {
+    if (data.length() > 0)
+        time(&last_action);
     _buff += data; 
     // Debug::info("buff size: ", _buff.length());
     // Debug::info("content size: ", _content.length());
@@ -132,6 +134,10 @@ size_t Client::getResponseLength()
     // Debug::checkpoint("response length sent = ", _from);
     return (_response.length() - _from); 
 }
-void Client::substract(size_t len) { _from += len; }
+void Client::substract(size_t len) {
+    if (len > 0)
+        time(&last_action);
+    _from += len;
+    }
 
 Client::~Client() {}

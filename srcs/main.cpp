@@ -95,6 +95,18 @@ void *StartWorker(void *args) {
                                 all_receive[i] = true;
                             }
                         }
+                        /*time_t actual_time;
+                        time(&actual_time);
+                        if(clients[i]->last_action - actual_time > 300)
+                        {
+                            close(i);
+                            FD_CLR(i, &master_set);
+                            delete clients[i];
+                            all_receive[i] = false;
+                            close_conn[i] = false;
+                            Debug::checkpoint("Close FD");
+                            break;
+                        }*/
                     }
                 }
                 else if (FD_ISSET(i, &write_set))
@@ -127,8 +139,9 @@ void *StartWorker(void *args) {
                             }
                         }
                     }
-
-                    if (close_conn[i])
+                    time_t actual_time;
+                    time(&actual_time);
+                    if (close_conn[i] /*|| clients[i]->last_action - actual_time > 300*/)
                     {
                         close(i);
                         FD_CLR(i, &master_set);

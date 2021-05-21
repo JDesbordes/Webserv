@@ -27,6 +27,7 @@ class Client
         const char *getResponse();
         size_t getResponseLength();
         void substract(size_t len);
+        time_t last_action;
 
         ~Client();
     private:
