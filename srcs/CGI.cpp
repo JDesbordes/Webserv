@@ -135,11 +135,13 @@ std::string CGI::process()
 		execve(_road->getCGIPath().c_str(), nll, args);
 		Debug::error("Execve crash [" + _road->getCGIPath() + "]: " + std::string(strerror(errno)));
 		write(STDOUT_FILENO, "HTTP/1.1 500 Internal Server Error\r\n\r\n", ft_strlen("HTTP/1.1 500 Internal Server Error\r\n\r\n"));
+        exit(0);
 	}
 	else
 	{
         //add select
 		char	buffer[RECV_BUFFER_SIZE] = {0};
+        std::cerr << "pid = " << pid << std::endl;
 		waitpid(-1, NULL, 0);
 		lseek(fdOut, 0, SEEK_SET);
 		ret = 1;

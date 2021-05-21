@@ -13,12 +13,14 @@ class Server
         Server &operator=(const Server &);
 
         void setPort(int port);
+        void setWorkers(int workers);
         void setHost(std::string host);
         void setServerName(std::string server_name);
         void addErrorPage(int err, std::string page);
         std::map<std::string, Route>::iterator addRoute(std::string, Route);
 
         int &getPort();
+        int &getWorkers();
         std::string &getHost();
         std::string &getServerName();
         std::map<int, std::string> &getErrorPage();
@@ -30,6 +32,7 @@ class Server
     private:
 
         int                                 _port;
+        int                                 _workers;
         std::string                         _host;
         std::string                         _server_name;
         std::map<int, std::string>          _error_pages;

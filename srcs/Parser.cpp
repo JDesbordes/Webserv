@@ -121,6 +121,10 @@ Parser::Parser(char *path)
             {
                 _result.back().setServerName(cleaned[1]);
             }
+            else if (last_type == 1 && cleaned[0] == "workers" && cleaned.size() == 2)
+            {
+                _result.back().setWorkers(ft_atoi(cleaned[1].c_str()));
+            }
             else if (last_type == 1 && cleaned[0] == "error_page" && cleaned.size() >= 2)
             {
                 for (size_t j = 1; j < cleaned.size() - 1; j++)

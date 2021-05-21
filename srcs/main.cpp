@@ -149,7 +149,6 @@ void RunServer(Server server, char **env)
 {
     int                     rc, on = 1;
     struct sockaddr_in      addr;
-    //pthread_t               *workers = (pthread_t *)malloc(WORKERS * sizeof(pthread_t));
     t_worker                data;
 
     addr.sin_family = AF_INET;
@@ -162,6 +161,8 @@ void RunServer(Server server, char **env)
         Debug::error("socket() failed [" + std::string(strerror(errno)) + "]");
         exit(-1);
     }
+
+    signal(SIGINT, int_handler);
 
     rc = setsockopt(server_socket, SOL_SOCKET,  TCP_NODELAY, (char *)&on, sizeof(on));
     if (rc < 0)
@@ -197,17 +198,10 @@ void RunServer(Server server, char **env)
 
     data.env = env;
     data.serv = &server;
-
-    for (int i = 0; i < WORKERS; i++)
-    {
-        int p = fork();
-        if (!p) {
+ 
+    for (int i = 0; i < server.getWorkers(); i++)
+        if (!fork())
             StartWorker(&data);
-        } else {
-            pid[i] = p;
-        }
-    }
-    signal(SIGINT, int_handler);
     while (true);
 }
 
@@ -221,13 +215,8 @@ int main(int ac, char **av, char **env)
         char *path;
         char buf[2048];
 
-        if (!ft_strncmp(av[2], "on", 2)) {
-            std::cout << "DEBUG TRUE" << std::endl;
-            d = true;
-        } else {
-            std::cout << "DEBUG FALSE" << std::endl;
-            d = false;
-        }
+        if (!ft_strncmp(av[2], "on", 2)) { d = true; }
+        else { d = false; }
 
         getcwd(buf, 2048);
         path = ft_strjoin(buf, "/");

@@ -31,7 +31,7 @@
 #include "typedefs.hpp"
 #include "utils.hpp"
 
-static int pid[WORKERS];
+// static int pid[WORKERS];
 void int_handler(int);
 static SOCKET server_socket;
 

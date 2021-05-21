@@ -19,7 +19,11 @@ typedef int SOCKET;
 #define MAX_CONNECTIONS 10000
 #define RECV_BUFFER_SIZE 1000000
 #define MAX_URL 1000000
-#define WORKERS 3
+
+#define ERR
+#define WARN
+#define CP
+#define INFO
 
 #define DEFAULT_200_PAGE "<h1>200 Success</h1>"
 #define DEFAULT_201_PAGE "<h1>201 Created</h1>"
