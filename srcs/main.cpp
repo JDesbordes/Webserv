@@ -262,6 +262,8 @@ int main(int ac, char **av, char **env)
                 }
                 std::cout << GRE << "╚═══════════════╩═══════════════╩═══════════════╝" << RST << std::endl;
             } else if (tkns[0] == "exit" && tkns.size() == 1) {
+                for (std::vector<pid_t>::iterator itr = pids.begin(); itr != pids.end(); itr++)
+                    kill(*itr, SIGINT);
                 kill(0, SIGINT);
             } else { std::cout << RED << "Error: Type ? or help for show command list" << RST << std::endl; }
         }
