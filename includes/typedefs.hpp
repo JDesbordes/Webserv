@@ -27,6 +27,7 @@ class Server;
 typedef struct s_worker {
     char            **env;
     Server          *serv;
+    int             id;
 } t_worker;
 
 #endif
