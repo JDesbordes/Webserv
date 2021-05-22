@@ -120,7 +120,7 @@ void Client::process()
     Debug::checkpoint("Processing : ", _socket);
     HttpParser httpParser = HttpParser();
     std::string page = httpParser.processParse(*this, _conf, _raw_header, _content, _env);
-    Debug::error("PAGE RESULT: " + page.substr(0, 2000));
+    //Debug::error("PAGE RESULT: " + page.substr(0, 2000));
     _response = page;
     return ;
 }

@@ -19,7 +19,7 @@ bool CGI::operator()(std::string path, Route &conf)
 
 CGI::~CGI() {}
 
-void CGI::setFrom(Client &c, std::string path, Route *conf, char **env)
+void CGI::setFrom(Client &c, std::string path, Route *conf, char **env, std::map<std::string, std::string> headers, std::string args)
 {
     _errno = 200;
     Debug::checkpoint(path);
@@ -41,7 +41,6 @@ void CGI::setFrom(Client &c, std::string path, Route *conf, char **env)
         _mapped_args.insert(std::pair<std::string, std::string>(tmp.substr(0, tmp.find("=")), tmp.substr(tmp.find("=") + 1)));
     }
 
-    _mapped_args.insert(std::pair<std::string, std::string>("AUTH_TYPE", ""));
     ss.str("");
     ss << c.getContent().length();
     _mapped_args.insert(std::pair<std::string, std::string>("CONTENT_LENGTH", ss.str()));
@@ -57,13 +56,23 @@ void CGI::setFrom(Client &c, std::string path, Route *conf, char **env)
 
     _mapped_args.insert(std::pair<std::string, std::string>("PATH_INFO", c.getHeader()->getPath()));
     _mapped_args.insert(std::pair<std::string, std::string>("PATH_TRANSLATED", path_info));
-    _mapped_args.insert(std::pair<std::string, std::string>("QUERY_STRING", path.find("?") != std::string::npos ? path.substr(path.find("?")) : ""));
-    _mapped_args.insert(std::pair<std::string, std::string>("REMOTE_ADDR", "127.0.0.1"));
+    _mapped_args.insert(std::pair<std::string, std::string>("QUERY_STRING", args));
+    _mapped_args.insert(std::pair<std::string, std::string>("REMOTE_ADDR", "::1"));
     _mapped_args.insert(std::pair<std::string, std::string>("REMOTE_IDENT", ""));
-    _mapped_args.insert(std::pair<std::string, std::string>("REMOTE_USER", ""));
+
+    if (headers.find("Authorization") != headers.end()) {
+        std::string encoded = split(headers.find("Authorization")->second, " ")[2];
+        std::string decoded;
+        Base64::Decode(encoded, decoded);
+        std::vector<std::string> tkns = split(decoded, ":");
+        _mapped_args.insert(std::pair<std::string, std::string>("REMOTE_USER", tkns[0]));
+        _mapped_args.insert(std::pair<std::string, std::string>("AUTH_TYPE", split(headers.find("Authorization")->second, " ")[1]));
+    }
+
     _mapped_args.insert(std::pair<std::string, std::string>("REQUEST_METHOD", c.getHeader()->getMethod()));
     _mapped_args.insert(std::pair<std::string, std::string>("REQUEST_URI", c.getHeader()->getPath()));
     _mapped_args.insert(std::pair<std::string, std::string>("SCRIPT_NAME", path.find("?") != std::string::npos ? path.substr(0, path.find("?")) : path));
+    _mapped_args.insert(std::pair<std::string, std::string>("SCRIPT_FILENAME", path.find("?") != std::string::npos ? path.substr(0, path.find("?")) : path));
 
     _mapped_args.insert(std::pair<std::string, std::string>("SERVER_NAME", c.getConf()->getHost()));
     ss.str("");
@@ -80,6 +89,7 @@ void CGI::setFrom(Client &c, std::string path, Route *conf, char **env)
         std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::toupper);
         _mapped_args.insert(std::pair<std::string, std::string>("HTTP_" + tmp, itr->second));
     }
+    _mapped_args.insert(std::pair<std::string, std::string>("REDIRECT_STATUS", "200"));
 }
 
 char **CGI::getArgs()
@@ -133,15 +143,13 @@ std::string CGI::process()
 		dup2(fdIn, STDIN_FILENO);
 		dup2(fdOut, STDOUT_FILENO);
 		execve(_road->getCGIPath().c_str(), nll, args);
-		Debug::error("Execve crash [" + _road->getCGIPath() + "]: " + std::string(strerror(errno)));
+        std::cout << "Execve crash [" << _road->getCGIPath() << "]: " << std::string(strerror(errno));
 		write(STDOUT_FILENO, "HTTP/1.1 500 Internal Server Error\r\n\r\n", ft_strlen("HTTP/1.1 500 Internal Server Error\r\n\r\n"));
         exit(0);
 	}
 	else
 	{
-        //add select
 		char	buffer[RECV_BUFFER_SIZE] = {0};
-        std::cerr << "pid = " << pid << std::endl;
 		waitpid(-1, NULL, 0);
 		lseek(fdOut, 0, SEEK_SET);
 		ret = 1;
@@ -167,9 +175,9 @@ std::string CGI::process()
         _errno = 500;
         res = "\r\n\r\n";
         Debug::error("CGI 500 Error");
+    } else {
+        res = parseResult(res);
     }
-    // res = parseResult(res);
-
     return (res);
 }
 

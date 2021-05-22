@@ -17,6 +17,7 @@ int isRegularFile(const char *path);
 int isDirectory(const char *path);
 int countChar(std::string s, char c);
 bool is_number(const std::string& s);
+t_mime get_mime(std::string s);
 
 template<typename charT>
 struct ci_equal {

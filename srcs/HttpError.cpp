@@ -45,7 +45,6 @@ std::string HttpError::getDefaultPage(int err) {
         default:
             return (DEFAULT_500_PAGE);
             break;
-        // TODO Check all handled
     }
 }
 
@@ -84,6 +83,5 @@ std::string HttpError::getStatusMsg(int err) {
         default:
             return (DEFAULT_500_MSG);
             break;
-        // TODO Check all handled
     }
 }

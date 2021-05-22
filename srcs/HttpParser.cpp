@@ -61,32 +61,69 @@ std::string HttpParser::processParse(Client &client, Server *serv, std::string r
         } else {// SINON RECUPERE JUSTE LE STATUS
             Debug::checkpoint("No error while processing", _status);
             _header = HttpError::getStatusMsg(_status) + "\r\n" + _header;
+            //_header += "Content-Encoding: gzip\r\n";
+            std::string tmppath = split(_initial_path, "?")[0];
+            std::vector<std::string> ext = split(tmppath, ".");
+            if (ext.size() > 1)
+                _header += "Content-Type: " + get_mime(ext.back()).mime + "\r\n";
         }
     }
     
-    Debug::warning("Header : " + Debug::escapestr(_header));
-    if (_method == HEAD)
-        return (_header + "\r\n");
-    if (_header.find("Content-Length") != std::string::npos) {
+    if (_header.find("Content-Length") == std::string::npos) {
         std::stringstream ss;
         ss << "Content-Length: " << _page.length() << "\r\n";
         _header += ss.str();
     }
-    return (_header + "\r\n" + _page);
+    if (_contentlang != "")
+        _header += _contentlang;
+    Debug::warning("Header : " + Debug::escapestr(_header));
+    return (_header + "\r\n" + ((_method != HEAD) ? _page : ""));
+    // TODO Tester un get avec des ?test=toto (args)
 }
 
 void HttpParser::processPath(Client &c, Server *serv)
 {
     std::string res;
 
+    _args = "";
+    if (split(_path, "?").size() > 1)
+        _args = split(_path, "?")[1];
+    _path = split(_path, "?")[0];
+
+    Debug::error(_path);
+
     if (URLAliased(serv))
         _path = modifiedURL(serv);
     else
         _road = NULL;
     _path = resolvePath();
+    Debug::error(_path);
     if (!isFile())
         appendIndex();
+    std::vector<std::string> ext = split(_path, ".");
+    if (ext.size() > 1)
+        _ext = ext.back();
 
+    if (_headers.find("Content-Language") != _headers.end()) {
+        std::map<std::string, double> langs = parseContentLanguage();
+        std::string tmp_path = _path;
+        std::string tmp_lang = "";
+        double best_q = 0.0;
+        for (std::map<std::string, double>::iterator itr = langs.begin(); itr != langs.end(); itr++) {
+            std::ifstream f(_path + "." + itr->first);
+            if (f.is_open()) {
+                if (itr->second > best_q) {
+                    best_q = itr->second;
+                    tmp_path = _path + "." + itr->first;
+                    tmp_lang = itr->first;
+                }
+                f.close();
+            }
+        }
+        _path = tmp_path;
+        if (tmp_lang != "")
+            _contentlang += "Content-Language: " + tmp_lang + "\r\n";
+    }
     Debug::info("Final path : [" + _path + "]");
     if (_road != NULL && _content.length() > _road->getClientMaxBodySize())
     {
@@ -117,9 +154,7 @@ void HttpParser::processPath(Client &c, Server *serv)
         {
             std::string encoded = split(_headers.find("Authorization")->second, " ")[2];
             std::string decoded;
-            Debug::error(encoded);
-            Debug::error(Base64::Decode(encoded, decoded));
-            Debug::error("Debug:[" + decoded + "]");
+            Base64::Decode(encoded, decoded);
             std::vector<std::string> tkns = split(decoded, ":");
             if (_road->getAuthBasicUserFileList().find(tkns[0]) != _road->getAuthBasicUserFileList().end() &&
                 _road->getAuthBasicUserFileList().find(tkns[0])->second == tkns[1])
@@ -146,20 +181,24 @@ void HttpParser::redirectMethod(Client &c)
 
 void HttpParser::getMethod(Client &c)
 {
-    if (CGI()(_path, *_road))
+    if (_ext == _road->getCGIExtension())
         execCgi(c);
     else if (isFile())
     {
         std::string str;
-        std::ifstream ifile(_path);
+        std::ifstream ifile(_path, std::ios::in | std::ios::binary);
 
         if (!ifile.is_open())
             _errno = 500;
         else {
-            while (getline(ifile, str))
-                _page += str;
+            ifile.seekg(0, std::ios::end);
+            std::vector<unsigned char> bytes(ifile.tellg(), 0);
+            ifile.seekg(0, std::ios::beg);
+            ifile.read((char*)&bytes[0], bytes.size());
             _status = 200;
             ifile.close();
+
+            _page = std::string(reinterpret_cast<const char *>(&bytes[0]), bytes.size());
         }
     }
     else if (_road->getAutoIndex())
@@ -170,7 +209,7 @@ void HttpParser::getMethod(Client &c)
 
 void HttpParser::postMethod(Client &c)
 {
-    if (CGI()(_path, *_road))
+    if (_ext == _road->getCGIExtension())
         execCgi(c);
     else
         _status = 204;
@@ -205,42 +244,46 @@ void HttpParser::putMethod()
 
 void HttpParser::autoIndex()
 {
-    _page = "<h1>" + _initial_path + "/</h1>";
+    _page = "<h1>" + _initial_path + "</h1>";
     struct dirent *current;
     DIR *directory = opendir(_path.c_str());
     if (!directory)
         _errno = 404;
     else
     {
-        _page += "<table><tbody><tr><th>Name</th><th>Size (TODO)</th></tr><tr><th colspan=\"5\"><hr></th></tr>";
+        _page += "<table><tbody><tr><th>Name</th></tr><tr><th colspan=\"5\"><hr></th></tr>";
         while ((current = readdir(directory)))
         {
             if (std::string(current->d_name) == ".")
                 ;
             else if (std::string(current->d_name) == "..")
-                _page += "<tr><td align=\"left\"><a href=\"..\">Parent Directory</a></td><td align=\"center\">-</td></tr>";
+                _page += "<tr><td align=\"left\"><a href=\"..\">Parent Directory</a><</tr>";
             else
-                _page += "<tr><td align=\"left\"><a href=\"" + std::string(current->d_name) + "\">" + std::string(current->d_name) + "</a></td><td align=\"center\">0</td></tr>";
+                _page += "<tr><td align=\"left\"><a href=\"" + _initial_path + "/" + std::string(current->d_name) + "\">" + std::string(current->d_name) + "</a></td></tr>";
         }
         _page += "</tbody></table>";
         _status = 200;
+        closedir(directory);
     }
-    closedir(directory);
 }
 
 void    HttpParser::execCgi(Client &c)
 {
     CGI cgi;
-
-    cgi.setFrom(c, _path, _road, _env);
+    cgi.setFrom(c, _path, _road, _env, _headers, _args);
     std::string tmp_cgi = cgi.process();
-    _header = tmp_cgi.substr(0, tmp_cgi.find("\r\n\r\n"));
-    _header += "\r\n";
-    _page = tmp_cgi.substr(tmp_cgi.find("\r\n\r\n") + 4);
-    if (cgi._errno / 100 == 2)
-        _status = cgi._errno;
-    else
-        _errno = cgi._errno;
+    if (tmp_cgi.size()) {
+        _header = tmp_cgi.find("\r\n\r\n") != std::string::npos ? tmp_cgi.substr(0, tmp_cgi.find("\r\n\r\n")) : tmp_cgi;
+        _header += "\r\n";
+        _page = tmp_cgi.find("\r\n\r\n") != std::string::npos ? tmp_cgi.substr(tmp_cgi.find("\r\n\r\n") + 4) : "";
+        if (cgi._errno / 100 == 2)
+            _status = cgi._errno;
+        else
+            _errno = cgi._errno;
+    } else {
+        _status = 200;
+        _page = "";
+    }
 }
 
 bool HttpParser::methodAllowed()
@@ -307,6 +350,20 @@ void HttpParser::debugHeaders()
 {
     for (std::map<std::string, std::string>::iterator itr = _headers.begin(); itr != _headers.end(); itr++)
         Debug::warning("[" + itr->first + "] = [" + itr->second + "]");
+}
+
+std::map<std::string, double> HttpParser::parseContentLanguage() {
+    std::map<std::string, double> res;
+    std::string raw = _headers.find("Accept-Language")->second;
+    std::vector<std::string> tkns = split(raw, ",");
+    for (std::vector<std::string>::iterator itr = tkns.begin(); itr != tkns.end(); itr++) {
+        std::vector<std::string> sub_tkns = split(*itr, ";");
+        double weight = 1.0;
+        if (sub_tkns.size() == 2)
+            weight = atof(sub_tkns[1].substr(2).c_str());
+        res.insert(std::pair<std::string, double>(sub_tkns[0], weight));
+    }
+    return (res);
 }
 
 int HttpParser::getErrno() { return (_errno); }

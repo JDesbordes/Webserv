@@ -129,3 +129,11 @@ bool is_number(const std::string& s)
     while (it != s.end() && std::isdigit(*it)) ++it;
     return !s.empty() && it == s.end();
 }
+
+t_mime get_mime(std::string s)
+{
+    for (int i = 1; i < MIME_COUNT; i++)
+        if (mime[i].ext == s)
+            return (mime[i]);
+    return (mime[0]);
+}

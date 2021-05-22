@@ -31,6 +31,7 @@ class HttpParser {
         std::string appendIndex();
 
         void debugHeaders();
+        std::map<std::string, double> parseContentLanguage();
 
         int getErrno();
         bool isValid();
@@ -42,9 +43,12 @@ class HttpParser {
         std::map<std::string, std::string> _headers;
         std::string _content;
         t_method_type _method;
+        std::string _ext;
         std::string _path;
         std::string _initial_path;
         std::string _http_version;
+        std::string _contentlang;
+        std::string _args;
         Route *_road;
         char **_env;
 

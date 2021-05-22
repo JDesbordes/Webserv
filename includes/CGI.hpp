@@ -13,7 +13,7 @@ class CGI {
         CGI &operator=(const CGI &cgi);
         ~CGI();
 
-        void setFrom(Client &c, std::string path, Route *conf, char **env);
+        void setFrom(Client &c, std::string path, Route *conf, char **env, std::map<std::string, std::string> headers, std::string args);
         char **getArgs();
         std::string parseResult(std::string);
 

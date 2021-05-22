@@ -1,3 +1,5 @@
 <?php 
-echo info();
+phpinfo();
+
+echo $_GET['test'];
 ?>

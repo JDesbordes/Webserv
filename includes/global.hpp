@@ -29,6 +29,7 @@
 #include "libft.hpp"
 #include "defines.hpp"
 #include "typedefs.hpp"
+#include "mime.hpp"
 #include "utils.hpp"
 
 // static int pid[WORKERS];
