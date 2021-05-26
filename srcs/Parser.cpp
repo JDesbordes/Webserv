@@ -195,7 +195,7 @@ Parser::Parser(char *path)
             else if (last_type == 2 && cleaned[0] == "basic_auth_user_file" && cleaned.size() == 2)
             {
                 last_location->second.setAuthBasicUserFile(cleaned[1]);
-                std::ifstream ifile(cleaned[1]);
+                std::ifstream ifile(cleaned[1].c_str());
                 if (ifile.is_open()) {
                     while (ifile) {
                         std::string tmp;
@@ -203,7 +203,8 @@ Parser::Parser(char *path)
                         if (countChar(tmp, ':') != 1 && tmp != "")
                             parse_error("Invalid .htpasswd format (user:pass)", cleaned[1]);
                         std::vector<std::string> tkns = split(tmp, ":");
-                        last_location->second.getAuthBasicUserFileList().insert(std::pair<std::string, std::string>(tkns[0], tkns[1]));
+                        if (tkns.size() == 2)
+                            last_location->second.getAuthBasicUserFileList().insert(std::pair<std::string, std::string>(tkns[0], tkns[1]));
                     }
                     std::stringstream ss;
                 } else

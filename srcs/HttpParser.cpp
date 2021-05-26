@@ -116,7 +116,7 @@ void HttpParser::processPath(Client &c, Server *serv)
         std::string tmp_lang = "";
         double best_q = 0.0;
         for (std::map<std::string, double>::iterator itr = langs.begin(); itr != langs.end(); itr++) {
-            std::ifstream f(_path + "." + itr->first);
+            std::ifstream f((_path + "." + itr->first).c_str());
             if (f.is_open()) {
                 if (itr->second > best_q) {
                     best_q = itr->second;
@@ -192,7 +192,7 @@ void HttpParser::getMethod(Client &c)
     else if (isFile())
     {
         std::string str;
-        std::ifstream ifile(_path, std::ios::in | std::ios::binary);
+        std::ifstream ifile(_path.c_str(), std::ios::in | std::ios::binary);
 
         if (!ifile.is_open())
             _errno = 500;
@@ -227,14 +227,14 @@ void HttpParser::putMethod()
 
     if (isFile())
     {
-        ofile.open(_path);
+        ofile.open(_path.c_str());
 		ofile << _content;
 		ofile.close();
         _status = 204;
     }
     else
     {
-        ofile.open(_path, std::ofstream::out | std::ofstream::trunc);
+        ofile.open(_path.c_str(), std::ofstream::out | std::ofstream::trunc);
         if (!ofile.is_open())
         {
             _errno = 403;

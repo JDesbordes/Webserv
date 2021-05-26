@@ -11,7 +11,6 @@ std::string Date::operator()()
     struct timeval tv;
     struct timezone tz;
     tz.tz_minuteswest = 0;
-    tz.tz_dsttime = DST_NONE;
     gettimeofday(&tv, &tz);
     time_t ttime = tv.tv_sec;
     struct tm *time = localtime(&ttime);

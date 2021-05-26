@@ -7,7 +7,7 @@ std::string HttpError::getPage(Server *serv, HttpParser *parser) {
     std::map<int, std::string> pages = serv->getErrorPage();
     if (pages.find(parser->getErrno()) != pages.end()) {
         std::string line;
-        std::ifstream file(pages.find(parser->getErrno())->second);
+        std::ifstream file(pages.find(parser->getErrno())->second.c_str());
         if (file.is_open()) {
             while (getline(file, line))
                 err += line;

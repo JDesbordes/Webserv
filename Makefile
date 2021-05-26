@@ -25,7 +25,7 @@ CVERSION		=	--std=c++98
 FSANITIZE		=	-fsanitize=address
 LFLAGS  		=	-I $(INCS_DIR) -I$(LIBF_DIR)
 CALLF			=	$(CC) $(CFLAGS) $(CVERSION)
-CALLFLIB		=	$(CC) $(CFLAGS) $(CVERSION) $(LFLAGS) $(FSANITIZE)
+CALLFLIB		=	$(CC) $(CFLAGS) $(CVERSION) $(LFLAGS) #$(FSANITIZE)
 
 # Defauilt Make #
 all				:	directories lib $(NAME)
