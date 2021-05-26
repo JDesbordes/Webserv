@@ -74,6 +74,12 @@ std::string HttpParser::processParse(Client &client, Server *serv, std::string r
         ss << "Content-Length: " << _page.length() << "\r\n";
         _header += ss.str();
     }
+    
+    if (_header.find("Connection") == std::string::npos) {
+        std::stringstream ss;
+        ss << "Connection: close\r\n";
+        _header += ss.str();
+    }
     if (_contentlang != "")
         _header += _contentlang;
     Debug::warning("Header : " + Debug::escapestr(_header));
