@@ -80,11 +80,11 @@ std::string HttpParser::processParse(Client &client, Server *serv, std::string r
         ss << "Connection: close\r\n";
         _header += ss.str();
     }
+
     if (_contentlang != "")
         _header += _contentlang;
     Debug::warning("Header : " + Debug::escapestr(_header));
     return (_header + "\r\n" + ((_method != HEAD) ? _page : ""));
-    // TODO Tester un get avec des ?test=toto (args)
 }
 
 void HttpParser::processPath(Client &c, Server *serv)
@@ -187,7 +187,7 @@ void HttpParser::redirectMethod(Client &c)
 
 void HttpParser::getMethod(Client &c)
 {
-    if (_ext == _road->getCGIExtension())
+    if (_ext != "" && _ext == _road->getCGIExtension())
         execCgi(c);
     else if (isFile())
     {
@@ -215,7 +215,7 @@ void HttpParser::getMethod(Client &c)
 
 void HttpParser::postMethod(Client &c)
 {
-    if (_ext == _road->getCGIExtension())
+    if (_ext != "" && _ext == _road->getCGIExtension())
         execCgi(c);
     else
         _status = 204;
