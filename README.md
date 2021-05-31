@@ -2,7 +2,7 @@
 
 # Webserv
 
-<img alt="Note" src="https://github.com/Kronx12/Webserv_2.0/succes.png" width="250" height="200" />
+<img alt="Note" src="https://github.com/Kronx12/Webserv_2.0/blob/master/succes.png" width="250" height="200" />
 
 <strong>Description</strong>
 
