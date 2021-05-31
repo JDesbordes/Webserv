@@ -17,7 +17,7 @@ won’t be working on a website.
 
 # Mandatory part
 
-![Sujet](https://user-images.githubusercontent.com/45235527/107391358-e74dc780-6af8-11eb-8f84-b642d9a2495a.png)
+![Sujet](https://github.com/Kronx12/Webserv_2.0/succes.png)
 
 You must write a HTTP server in C++ 98
 - The C++ standard must be C++ 98. Your project must compile with it.
